@@ -1,4 +1,8 @@
+# Build
 build/
+*.out
+
+# CMake
 CMakeCache.txt
 CMakeFiles
 Makefile
