@@ -25,32 +25,72 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef __rope__binary_file__
-#define __rope__binary_file__
+#ifndef __rope__elf_object__
+#define __rope__elf_object__
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <fstream>
+#include <array>
+#include <vector>
+#include <map>
+#include <string>
 
-class BinaryFile {
+struct ELFHeader {
+    struct : std::array<uint8_t, 16> {
+        uint8_t* magic_number() { return &(*this)[0]; }
+        uint8_t elf_class() { return (*this)[4]; }
+        uint8_t encoding() { return (*this)[5]; }
+        uint8_t version() { return (*this)[6]; }
+    } identity;
 
-public:
-    BinaryFile(std::string file_path) {
-        m_file.exceptions(std::fstream::badbit | std::fstream::failbit | std::fstream::eofbit);
-        m_file.open(file_path, std::fstream::in | std::fstream::binary);
+    uint16_t type;
+    uint16_t machine;
+    uint32_t version;
+    uint32_t entry_address;
+    uint32_t program_header_offset;
+    uint32_t section_header_offset;
+    uint32_t flags;
+    uint16_t elf_header_size;
+    uint16_t program_header_entry_size;
+    uint16_t program_header_entry_count;
+    uint16_t section_header_entry_size;
+    uint16_t section_header_entry_count;
+    uint16_t section_header_string_index;
 
-        m_file.seekg(0);
-    }
-
-    ~BinaryFile() {
-        m_file.close();
-    }
-
-public:
-    size_t Read(u_int8_t* out_data, size_t byte_count);
-
-private:
-    std::fstream m_file;
 };
 
+struct SectionHeader {
+    uint32_t name;
+    uint32_t type;
+    uint32_t flags;
+    uint32_t address;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t link;
+    uint32_t info;
+    uint32_t address_align;
+    uint32_t entry_size;
+};
 
-#endif /* defined(__rope__binary_file__) */
+static_assert(sizeof(ELFHeader) == 52, "ELF Header is not correct size.");
+
+class ElfObject {
+
+public:
+    ElfObject() = default;
+
+    void Parse(std::fstream* file);
+
+private:
+    void ParseSectionHeaders(std::fstream* file);
+    void ParseSectionNames(std::fstream* file);
+
+private:
+    ELFHeader m_elf_header;
+
+    std::vector<SectionHeader> m_section_headers;
+    std::map<uint32_t, std::string> m_secion_names;
+};
+
+#endif /* defined(__rope__elf_object__) */

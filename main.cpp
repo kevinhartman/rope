@@ -26,43 +26,48 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
-
+#include <fstream>
 #include <array>
 #include <stdio.h>
 #include <inttypes.h>
 
 #include "capstone/include/capstone.h"
 
-#include "binary_file.h"
+#include "elf_object.h"
 
 #define MAX_IDEAL_PAYLOAD_SIZE 10000
 
 int main(int argc, char *argv[]) {
 
-    BinaryFile ideal_program(argv[1]);
+    std::fstream file;
+    file.exceptions(std::fstream::badbit | std::fstream::failbit | std::fstream::eofbit);
+    file.open(argv[1], std::fstream::in | std::fstream::binary);
 
-    uint8_t ideal_payload[MAX_IDEAL_PAYLOAD_SIZE];
-    size_t ideal_payload_size = ideal_program.Read(ideal_payload, MAX_IDEAL_PAYLOAD_SIZE);
+    ElfObject elfObject;
 
-    csh handle;
-    cs_insn *insn;
-    size_t count;
-    if (cs_open(CS_ARCH_ARM, CS_MODE_ARM, &handle) != CS_ERR_OK)
-        return -1;
+    elfObject.Parse(&file);
 
-    count = cs_disasm_ex(handle, ideal_payload, ideal_payload_size, 0x1000 /* TODO: stubbed */, 0, &insn);
-
-    if (count > 0) {
-        size_t j;
-
-        for (j = 0; j < count; j++) {
-            printf("0x%" PRIx64":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
-        }
-
-        cs_free(insn, count);
-    } else {
-        printf("ERROR: Failed to disassemble given code!\n");
-    }
-
-    cs_close(&handle);
+//    uint8_t ideal_payload[MAX_IDEAL_PAYLOAD_SIZE];
+//    size_t ideal_payload_size = ideal_program.Read(0 /* TODO: NOT hard code for COFF */, ideal_payload, MAX_IDEAL_PAYLOAD_SIZE);
+//    csh handle;
+//    cs_insn *insn;
+//    size_t count;
+//    if (cs_open(CS_ARCH_ARM, CS_MODE_ARM, &handle) != CS_ERR_OK)
+//        return -1;
+//
+//    count = cs_disasm_ex(handle, ideal_payload, ideal_payload_size, 0x1000 /* TODO: stubbed */, 0, &insn);
+//
+//    if (count > 0) {
+//        size_t j;
+//
+//        for (j = 0; j < count; j++) {
+//            printf("0x%" PRIx64":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
+//        }
+//
+//        cs_free(insn, count);
+//    } else {
+//        printf("ERROR: Failed to disassemble given code!\n");
+//    }
+//
+//    cs_close(&handle);
 }

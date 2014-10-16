@@ -19,11 +19,11 @@ add_definitions(-std=c++11)
 
 set(SRCS
   main.cpp
-  binary_file.cpp
+  elf_object.cpp
 )
 
 set(HEADERS
-  binary_file.h
+  elf_object.h
 )
 
 create_directory_groups(${SRCS} ${HEADERS})

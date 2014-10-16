@@ -24,22 +24,57 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#include <inttypes.h>
+#include <fstream>
+#include <array>
 
-#include <iostream>
+#include "elf_object.h"
 
-#include "binary_file.h"
+void ElfObject::ParseSectionNames(std::fstream* file) {
 
-size_t BinaryFile::Read(u_int8_t* out_data, size_t byte_count) {
+    file->seekg(0);
 
-    if (!out_data) {
-        return 0;
+    uint32_t string_table_offset = m_section_headers[m_elf_header.section_header_string_index].offset;
+
+    for (auto section : m_section_headers) {
+        file->seekg(string_table_offset + section.name);
+
+        // TODO: -- refactor
+        static char temp[1000];
+        std::string newstring = "";
+
+        file->read(temp, 1000);
+        newstring.insert(0, temp);
+        // --
+
+        m_secion_names[section.name] = newstring;
     }
+}
 
-    try {
-        m_file.read((char*)out_data, byte_count);
-    } catch (std::ifstream::failure e) {
-        // TODO: reset fail bit
+void ElfObject::ParseSectionHeaders(std::fstream* file) {
+
+    file->seekg(0);
+    file->seekg(m_elf_header.section_header_offset);
+
+    // resize to fit all section headers
+    m_section_headers.resize(m_elf_header.section_header_entry_count);
+
+    // read headers
+    size_t header_size = m_elf_header.section_header_entry_count * sizeof(SectionHeader);
+    file->read((char*)m_section_headers.data(), header_size);
+
+}
+
+void ElfObject::Parse(std::fstream* file) {
+
+    file->seekg(0);
+    file->read((char*)&m_elf_header, sizeof(ELFHeader));
+
+    ParseSectionHeaders(file);
+    ParseSectionNames(file);
+
+    // Dump strings table
+    for (auto entry : m_secion_names) {
+        printf("Key: %d     Value: %s\n", entry.first, entry.second.c_str());
     }
-
-    return m_file.gcount();
 }
